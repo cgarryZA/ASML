@@ -1,0 +1,237 @@
+\section{Technical Summary}\label{sec:technical}
+
+%% ===================================================================
+%% 2.1 PROBLEM DESCRIPTION (10%)
+%% ===================================================================
+\subsection{Problem Description}\label{sec:problem}
+
+The dataset comprises 5,000 observations and 13 variables from a Thera Bank marketing campaign. The binary response variable \texttt{Personal.Loan} indicates whether a customer accepted~(1) or declined~(0) a personal loan offer. The predictor variables include:
+
+\begin{itemize}
+    \item \textbf{Continuous:} Age, Experience (years), Income (thousands of dollars), CCAvg (average monthly credit card spending), Mortgage (value of mortgage).
+    \item \textbf{Discrete numeric:} Family size (1--4).
+    \item \textbf{Categorical:} Education (1=Undergrad, 2=Graduate, 3=Professional), Securities.Account, CD.Account, Online, CreditCard.
+    \item \textbf{Removed:} ZIP.Code (high cardinality, no predictive value).
+\end{itemize}
+
+\noindent\textbf{Feature Encoding.}
+Education was converted to an unordered factor rather than treated as a numeric ordinal variable, avoiding the assumption of constant spacing between levels (e.g., that the effect of moving from Undergrad to Graduate equals that of Graduate to Professional). The \texttt{caret} package then internally applies dummy coding for models that require numeric input, creating separate binary indicators for each education level. Binary categorical variables (Securities.Account, CD.Account, Online, CreditCard) were similarly converted to factors.
+
+\noindent\textbf{Initial Data Summary.}
+No missing values were found in any column. 52 observations had negative Experience values, all belonging to young customers (aged 23--29) for whom Age minus Experience falls below the dataset-wide minimum gap of approximately 24 years (the typical duration of formal education). These negative values likely represent customers with zero professional experience rather than a sign error, so they were clamped to zero using \texttt{pmax(Experience, 0)} rather than taking absolute values, which would have inflated their experience and broken the age-experience relationship. The target class is heavily imbalanced: 4,520 (90.4\%) declined vs.\ 480 (9.6\%) accepted. A na\"ive classifier predicting ``No'' for every customer would achieve 90.4\% accuracy, making accuracy alone an unreliable metric. Even a theoretically optimal Bayes classifier would have a non-zero error rate due to irreducible noise (overlap between classes), so perfect accuracy is neither expected nor achievable.
+
+\noindent\textbf{Data Cleaning and Information Leakage.}
+Two preprocessing steps were applied before splitting: (1) removal of ZIP.Code, and (2) clamping negative Experience values to zero. Neither constitutes information leakage because both are domain driven decisions: ZIP.Code is a high-cardinality identifier with no predictive relationship to loan acceptance, and negative experience reflects young customers who have not yet entered the workforce. No data driven feature selection or transformation was performed prior to splitting; all model-dependent preprocessing (centering, scaling) occurs within the \texttt{caret} training pipeline.
+
+\noindent\textbf{Exploratory Visualisations.}
+The income density plot (Figure~\ref{fig:income}) reveals strong separation: loan acceptors have markedly higher incomes (centred around 120--180k) compared to non-acceptors (30--60k), suggesting income is the single most discriminative feature. A multicollinearity analysis revealed that Age and Experience are near-perfectly correlated ($r = 0.994$). This collinearity affects coefficient interpretation in linear models but does not harm tree-based methods. A PCA score plot of the first two principal components (explaining 33.8\% and 28.9\% of variance respectively) shows partial visual separation between the classes, which suggests the problem is feasible but not trivially linearly separable.
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=\columnwidth]{income_distribution.png}
+    \caption{Income distribution by loan acceptance status. Loan acceptors have substantially higher incomes, supporting income as the dominant predictor.}
+    \label{fig:income}
+\end{figure}
+
+%% ===================================================================
+%% 2.2 MODEL FITTING (25%)
+%% ===================================================================
+\subsection{Model Fitting}\label{sec:fitting}
+
+\noindent\textbf{Train/Test Split.}
+The data was split 80/20 using stratified sampling (via \texttt{caret::createDataPartition}) to preserve the 9.6\% positive rate in both sets. The training set contains 4,000 observations and the test set 1,000. A fixed random seed (\texttt{set.seed(42)}) ensures full reproducibility.
+
+\noindent\textbf{Cross-Validation Strategy.}
+All models were evaluated using 10-fold cross-validation repeated 3 times (30 total resamples). The fold indices were pre-generated using \texttt{createMultiFolds} and shared across all models via the \texttt{index} argument in \texttt{trainControl}, so every model is trained and validated on exactly the same data partitions, making the comparison fair. The primary optimisation metric was AUC (area under the ROC curve), chosen over accuracy because AUC is insensitive to class imbalance and evaluates discriminative ability across all possible thresholds.
+
+\noindent\textbf{Model Selection.}
+Eight models were trained, spanning the spectrum from simple interpretable methods to complex ensemble and neural approaches. Indicator Regression (least-squares classification) was considered as a na\"ive baseline but excluded: its outputs are not bounded between 0 and 1, making them uninterpretable as probabilities, and it is susceptible to the ``masking'' problem in which intermediate classes can be suppressed. Logistic Regression addresses both issues and serves as the appropriate linear baseline.
+
+\begin{enumerate}
+    \item \textbf{Decision Tree} (\texttt{rpart}): Tuned over 20 complexity parameter (\textit{cp}) values from 0.001 to 0.05. Provides directly explainable rules (e.g., ``if Income $< 115$ and CCAvg $< 3$, predict No''). Cost complexity pruning acts as regularisation, penalising excessive terminal nodes to prevent overfitting.
+
+    \item \textbf{Logistic Regression} (\texttt{glm}): A \emph{discriminative} parametric baseline using a binomial link, fitted via maximum likelihood estimation. Provides interpretable log-odds coefficients but assumes a linear decision boundary.
+
+    \item \textbf{Linear Discriminant Analysis} (\texttt{lda}): A \emph{generative} classifier modelling class-conditional densities as multivariate Gaussians with a shared covariance matrix. Unlike the discriminative models above (which model $P(Y|X)$ directly), LDA models $P(X|Y)$ and applies Bayes' theorem. Quadratic Discriminant Analysis (QDA) was not pursued as the shared-covariance assumption is reasonable here and QDA's additional parameters risk overfitting.
+
+    \item \textbf{Elastic Net} (\texttt{glmnet}): Regularised logistic regression with combined $L_1$ (lasso) and $L_2$ (ridge) penalty. The $\alpha$ parameter was tuned over $\{0, 0.5, 1\}$ (pure ridge, a 50/50 blend, and pure lasso respectively). $\lambda$ was searched over 20 values on a logarithmic scale from $10^{-4}$ to $10^{-1}$. CV selected $\alpha=0$ (pure ridge) with $\lambda=0.0113$, suggesting $L_1$ feature selection is not needed and $L_2$ shrinkage is preferred.
+
+    \item \textbf{Random Forest} (\texttt{rf}): An ensemble of 500 bagged decision trees with \textit{mtry} tuned over $\{2,3,4,5,6,8\}$. The out-of-bag (OOB) error rate, a ``free'' estimate from the ${\sim}36.8\%$ of observations not sampled in each bootstrap replicate, was 1.1\%, consistent with CV results.
+
+    \item \textbf{Support Vector Machine} (\texttt{svmRadial}): An SVM with radial basis function kernel, tuned over $\sigma \in \{0.01, 0.05, 0.1\}$ and $C \in \{0.1, 1, 10\}$. Features were centred and scaled to ensure the distance-based kernel operates on a common scale.
+
+    \item \textbf{Gradient Boosted Machine} (\texttt{gbm}): A boosted ensemble tuning over \textit{n.trees} $\in \{100, 300, 500\}$, \textit{interaction.depth} $\in \{1, 3, 5\}$, with shrinkage fixed at 0.1. GBM builds trees sequentially, each correcting the residual errors of its predecessors.
+
+    \item \textbf{Neural Network} (\texttt{nnet}): A single-hidden-layer feedforward network with \textit{size} tuned over $\{5, 10, 20\}$ and weight decay over $\{0.001, 0.01, 0.1\}$. Features were centred and scaled. Maximum iterations set to 300.
+\end{enumerate}
+
+The cross-validation dotplot (Figure~\ref{fig:cv}) summarises ROC, Sensitivity, and Specificity across all 30 resamples. Random Forest and GBM achieve the highest median ROC (${\approx}0.998$), followed by Neural Network (0.993) and SVM (0.990). The linear models trail behind at 0.966--0.969, reflecting their limited capacity to capture nonlinear interactions.
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=\columnwidth]{cv_comparison.png}
+    \caption{Cross-validation comparison of all eight models across ROC, Sensitivity, and Specificity (30 resamples each).}
+    \label{fig:cv}
+\end{figure}
+
+%% ===================================================================
+%% 2.3 MODEL IMPROVEMENTS (20%)
+%% ===================================================================
+\subsection{Model Improvements}\label{sec:improvements}
+
+\noindent\textbf{Final Model Selection.}
+Random Forest was selected based on having the highest test set AUC (0.998) and CV ROC (mean 0.998). While GBM performed comparably in CV, Random Forest achieved slightly better test performance and has the advantage of inherent OOB error estimation as an additional, independent validation check.
+
+\noindent\textbf{Progressive Improvements.}
+Starting from a logistic regression baseline (AUC = 0.942), each successive model class provided measurable gains:
+
+\begin{table}[tb]
+\centering
+\caption{Test set AUC by model, ordered by performance.}
+\label{tab:improvements}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Model & Test AUC & $\Delta$ vs Logistic \\
+\midrule
+Logistic       & 0.942 & (baseline) \\
+LDA            & 0.940 & $-0.002$ \\
+Elastic Net    & 0.943 & $+0.001$ \\
+Decision Tree  & 0.977 & $+0.035$ \\
+SVM            & 0.976 & $+0.034$ \\
+Neural Network & 0.983 & $+0.041$ \\
+GBM            & 0.996 & $+0.054$ \\
+Random Forest  & 0.998 & $+0.056$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The linear models (Logistic, LDA, Elastic Net) perform almost identically, which shows that the decision boundary is fundamentally nonlinear. Tree-based ensembles provide the largest gains, likely because they naturally capture interaction effects between Income, Education, and Family size.
+
+\noindent\textbf{Hyperparameter Tuning.}
+\begin{itemize}
+    \item \textbf{Elastic Net:} CV selected $\alpha=0$ (pure ridge), $\lambda=0.0113$. The preference for ridge implies all features contribute and none should be zeroed out.
+    \item \textbf{Random Forest:} Best $mtry=3$ (out of 11 features), matching the $\sqrt{d}$ heuristic. By restricting each split to a random subset of features, Random Forest decorrelates the constituent trees, reducing ensemble variance compared to standard bagging. The 500-tree ensemble achieves an OOB error of 1.1\%.
+    \item \textbf{GBM:} Best configuration: 500 trees, interaction depth 5, shrinkage 0.1.
+    \item \textbf{SVM:} Best $\sigma=0.05$, $C=1$.
+    \item \textbf{Neural Network:} Best size$=10$, decay$=0.01$, fitted via the BFGS quasi-Newton optimiser. A single hidden layer was chosen because the dataset is purely tabular with only 11 features; deeper architectures risk overfitting and offer diminishing returns vs.\ ensembles. Weight decay ($L_2$ regularisation on weights) is the primary strategy to avoid the overfitting trap.
+\end{itemize}
+
+\noindent\textbf{Regularisation Methods.}
+Three distinct strategies were employed: $L_1/L_2$ penalty in Elastic Net, cost complexity pruning (\textit{cp}) in the Decision Tree, and weight decay in the Neural Network. The Elastic Net's selection of pure ridge suggests that aggressive feature selection is not beneficial here. Data augmentation was not applied: while effective for image data, generating synthetic tabular observations risks creating customers with physically impossible feature combinations (e.g., negative income or age-experience mismatches), which would distort the learned decision boundaries.
+
+\noindent\textbf{Bias-Variance Considerations.}
+The progression from linear models to ensembles reflects the bias-variance tradeoff. Linear models have low variance but high bias, as they cannot capture the nonlinear interactions driving loan acceptance. Tree-based ensembles reduce bias by fitting complex decision surfaces while controlling variance through averaging (RF/bagging) or slow sequential learning (GBM/boosting). The learning curve (Section~\ref{sec:performance}) shows that both bias and variance are low.
+
+\noindent\textbf{Addressing Class Imbalance.}
+Rather than resampling techniques (SMOTE, oversampling), class imbalance was addressed through the choice of evaluation metric (AUC over accuracy) and post hoc threshold tuning. This avoids distorting the training distribution while still optimising for the minority class.
+
+%% ===================================================================
+%% 2.4 PERFORMANCE REPORT (25%)
+%% ===================================================================
+\subsection{Performance Report}\label{sec:performance}
+
+\noindent\textbf{Test Set Performance.}
+All eight models were evaluated on the 1,000 observation held out test set (Table~\ref{tab:results}). A critical observation: while Elastic Net achieves 93.5\% accuracy, its sensitivity is just 41.7\%, missing over 58\% of actual loan acceptors. This shows why accuracy is misleading on imbalanced data. Random Forest achieves 91.7\% sensitivity alongside 99.9\% specificity.
+
+\begin{table}[tb]
+\centering
+\caption{Test set performance metrics for all eight models.}
+\label{tab:results}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Model & AUC & Acc. & Sens. & Spec. & Prec. & F1 \\
+\midrule
+Tree         & 0.977 & 0.982 & 0.906 & 0.990 & 0.906 & 0.906 \\
+Logistic     & 0.942 & 0.953 & 0.635 & 0.987 & 0.836 & 0.722 \\
+LDA          & 0.940 & 0.936 & 0.500 & 0.982 & 0.750 & 0.600 \\
+Elastic Net  & 0.943 & 0.935 & 0.417 & 0.990 & 0.816 & 0.552 \\
+\textbf{Random Forest} & \textbf{0.998} & \textbf{0.991} & \textbf{0.917} & \textbf{0.999} & \textbf{0.989} & \textbf{0.951} \\
+SVM          & 0.976 & 0.981 & 0.854 & 0.995 & 0.943 & 0.896 \\
+GBM          & 0.996 & 0.983 & 0.896 & 0.992 & 0.925 & 0.910 \\
+Neural Net   & 0.983 & 0.988 & 0.906 & 0.997 & 0.967 & 0.936 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+The ROC curves (Figure~\ref{fig:roc}) show clear separation between model families. Random Forest (AUC=0.998) and GBM (AUC=0.996) dominate the upper left corner. The Precision-Recall curves (Figure~\ref{fig:pr}) are particularly informative for this imbalanced dataset (9.6\% positive): Random Forest maintains high precision ($>0.9$) even at high recall, while linear models show steep precision drop-off beyond 0.5 recall.
+
+\begin{figure}[b]
+    \centering
+    \includegraphics[width=\columnwidth]{roc_curves.png}
+    \caption{ROC curves on the test set. Random Forest (AUC=0.998) and GBM (AUC=0.996) dominate the upper-left corner.}
+    \label{fig:roc}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{pr_curves.png}
+    \caption{Precision-Recall curves, more informative than ROC for imbalanced classes (9.6\% positive rate).}
+    \label{fig:pr}
+\end{figure}
+
+\noindent\textbf{Feature Importance.}
+Random Forest variable importance (Figure~\ref{fig:varimp}) reveals Income as the dominant predictor (importance = 100), followed by Family size (56.0), Education (Graduate: 43.5, Professional: 42.0), and CCAvg (35.4). This ranking aligns with the exploratory analysis and the decision tree's splitting rules.
+
+\noindent\textbf{Calibration.}
+The calibration plot (Figure~\ref{fig:cal}) compares predicted probabilities against observed outcomes using decile bins. The Random Forest's calibration curve lies close to the diagonal, with a Brier score of 0.008. The Brier score is a \emph{proper scoring rule}: it is uniquely minimised when predicted probabilities equal the true conditional probabilities, so it rewards both discrimination and calibration. It was preferred over cross-entropy for calibration assessment because it is bounded $[0, 1]$, making it directly interpretable alongside classification error rates. A score of 0.008 (where 0 is perfect) shows that the predicted probabilities are trustworthy. This means they can be interpreted as genuine risk scores for downstream decision-making.
+
+\begin{figure}[b]
+    \centering
+    \includegraphics[width=\columnwidth]{feature_importance.png}
+    \caption{Random Forest variable importance. Income dominates, followed by Family size and Education level.}
+    \label{fig:varimp}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{calibration.png}
+    \caption{Calibration plot. Points close to the diagonal indicate well calibrated probabilities (Brier score = 0.008).}
+    \label{fig:cal}
+\end{figure}
+
+\noindent\textbf{Objective Function Choice.}
+Several objective functions were considered. Mean Misclassification Error (MMCE / 0-1 loss) is insensitive to probability quality and misleading on imbalanced data. Cross-entropy (log-loss) rewards well-calibrated probabilities but summarises performance at a single operating point rather than across all thresholds. AUC was selected because it evaluates discriminative performance across all thresholds rather than at a single operating point, is invariant to class priors, and has a direct probabilistic interpretation as the probability that a randomly chosen positive example is ranked above a randomly chosen negative. Calibration quality is assessed separately via the Brier score.
+
+\noindent\textbf{Post-Model Analysis: Threshold Tuning.}
+The default threshold of 0.5 maximises accuracy but may not align with business objectives. In this problem, false negatives (missing a willing customer) are costlier than false positives (marketing to a non-interested customer). Figure~\ref{fig:threshold} shows the trade-off between sensitivity, specificity, precision, and F1 as the threshold varies. Lowering the threshold catches more true acceptors at the cost of reduced precision.
+
+\begin{figure}[b]
+    \centering
+    \includegraphics[width=\columnwidth]{threshold_analysis.png}
+    \caption{Sensitivity/specificity trade-off across thresholds. Dashed line = default 0.5.}
+    \label{fig:threshold}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\columnwidth]{cost_analysis.png}
+    \caption{Cost analysis (FN = \pounds1,000, FP = \pounds300). Optimal threshold = 0.35.}
+    \label{fig:cost}
+\end{figure}
+
+A formal cost-benefit analysis assigned \pounds1,000 to each FN (lifetime net interest on a typical \pounds10k personal loan at ${\sim}2.5\%$ margin over four years) and \pounds300 to each FP (compliance screening, marketing acquisition, and operational handling costs derived from FCA due-diligence estimates). The optimal threshold minimising total cost is 0.35, reducing cost from \pounds8,300 (at 0.5) to \pounds6,200, a 25\% reduction (Figure~\ref{fig:cost}). Table~\ref{tab:threshold} summarises the performance trade-off.
+
+\begin{table}[tb]
+\centering
+\caption{Performance at default vs.\ optimal threshold.}
+\label{tab:threshold}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Metric & Default (0.5) & Optimal (0.35) \\
+\midrule
+Sensitivity & 0.917 & 0.948 \\
+Specificity & 0.999 & 0.996 \\
+F1          & 0.951 & 0.953 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The optimal threshold of 0.35 trades a small amount of specificity (0.999 $\to$ 0.996) for improved sensitivity (0.917 $\to$ 0.948), catching an additional 3 loan acceptors in the test set while generating only 3 extra false positives, a favourable trade-off given the 3.3:1 cost asymmetry.
+
+\noindent\textbf{Bias-Variance Diagnostic.}
+A learning curve was generated by training Random Forest on increasing fractions of the training data (10\% to 100\%). Both CV and test AUC converge rapidly and plateau above 0.995 by approximately 2,000 samples. The small gap between the curves indicates low variance; a large gap would signal overfitting, while poor performance on both would signal underfitting (high bias). This shows the model has reached a good balance in the bias-variance tradeoff, consistent with the low OOB error rate (1.1\%).
+
+\subsection*{Reproducible Code}
+All code is available at: \url{https://github.com/cgarryZA/ASML}. The repository includes a master file \texttt{report.R} which runs the full pipeline. All required packages are installed automatically if missing. Random seeds are fixed (\texttt{set.seed(42)}) to ensure reproducible results. Compatible with R 4.4.2+.

@@ -1,0 +1,17 @@
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+workspace.RData
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+
+main.pdf
+
+/lectures/
+Brief.pdf

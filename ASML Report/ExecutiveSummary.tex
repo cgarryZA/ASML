@@ -1,0 +1,30 @@
+\section{Executive Summary}
+
+\begin{figure}[b]
+    \centering
+    \includegraphics[width=\columnwidth]{decision_tree.png}
+    \caption{Decision tree showing the key rules for predicting loan acceptance. The first split is on income: customers earning above \$115k are far more likely to accept.}
+    \label{fig:tree}
+\end{figure}
+
+\subsection*{Can a Bank Predict Which Customers Will Accept a Personal Loan?}
+
+This analysis uses data from 5,000 bank customers to build a model that predicts whether a customer will accept a personal loan offer. The dataset, sourced from a previous marketing campaign by Thera Bank, contains information such as each customer's annual income, family size, education level, credit card spending, and whether they hold a certificate of deposit (CD) account. In the original campaign, only about 1 in 10 customers (9.6\%) accepted the loan offer, meaning the vast majority said no.
+
+The goal is to help the bank identify which customers are most likely to say yes, so that future campaigns can be targeted more effectively, saving marketing costs and increasing conversion rates.
+
+After testing eight different prediction approaches, ranging from simple rule-based methods to advanced machine learning algorithms, a Random Forest model was selected as the best performer. This model works by building hundreds of decision trees, each looking at a random subset of customer features, and then combining their votes to make a final prediction.
+
+How well does it work? Out of every 100 customers the model predicts will accept the loan, approximately 99 actually do (very few false alarms). Of all customers who genuinely would accept a loan, the model correctly identifies about 92 out of 100 of them. The remaining 8 are missed, meaning the bank would not target them, potentially leaving some revenue on the table.
+
+To put this in financial terms: based on UK retail banking data, each missed loan customer costs the bank approximately \pounds1,000 in lifetime net interest (on a typical \pounds10k loan), while each unnecessarily targeted non-customer costs roughly \pounds300 in compliance screening, marketing, and operational handling. By adjusting the model's decision threshold from 0.5 to 0.35, total misclassification cost on the test set drops from \pounds8,300 to \pounds6,200, a 25\% reduction (Figure~\ref{fig:cost_exec}).
+
+The strongest predictor of loan acceptance is income: customers earning above approximately \$115,000 per year are far more likely to accept. Family size, education level, and credit card spending are also important factors. Figure~\ref{fig:tree} provides a simple visual summary of how these rules combine, and Figure~\ref{fig:cost_exec} shows the financial impact of threshold tuning.
+
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics[width=\columnwidth]{cost_analysis.png}
+    \caption{Total misclassification cost by classification threshold (FN = \pounds1,000, FP = \pounds300). Optimal = 0.35, reducing cost by 25\%.}
+    \label{fig:cost_exec}
+\end{figure}

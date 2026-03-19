@@ -1,0 +1,41 @@
+name: Build Report PDF
+
+on:
+  push:
+    paths:
+      - 'ASML Report/**'
+      - 'plots/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          working_directory: ASML Report
+
+      - name: Copy PDF to repo root
+        run: cp "ASML Report/main.pdf" "ASML_Classification_Report.pdf"
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ASML_Classification_Report
+          path: ASML_Classification_Report.pdf
+
+      - name: Commit PDF to repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ASML_Classification_Report.pdf
+          git diff --cached --quiet || git commit -m "Auto-build: update report PDF"
+          git push
