@@ -5,7 +5,7 @@
 <h1 align="center">Personal Loan Acceptance Prediction</h1>
 
 <p align="center">
-  <em>MISCADA ASML Classification Summative — Durham University</em>
+  <em>MISCADA ASML Classification Summative - Durham University</em>
 </p>
 
 <p align="center">
@@ -20,7 +20,27 @@
 
 ## Overview
 
-Binary classification of personal loan acceptance using the Thera Bank dataset (5,000 customers, 9.6% positive rate). Eight models are trained, compared, and evaluated with a full cost-benefit threshold analysis.
+Binary classification of personal loan acceptance using the Thera Bank dataset (5,000 customers, 9.6% positive rate). Eight models are trained, compared, and evaluated with a full cost-benefit threshold analysis. The goal is to predict which customers can be upsold to a personal banking loan, allowing future campaigns to be targeted more effectively.
+
+## Dataset
+
+The dataset contains 5,000 customer records from a Thera Bank marketing campaign. The target variable is `Personal.Loan` (1 = accepted, 0 = declined).
+
+| Variable | Description | Type |
+|----------|-------------|------|
+| `Personal.Loan` | Customer accepted the loan offer | Binary (target) |
+| `Income` | Annual income ($000) | Continuous |
+| `CCAvg` | Average monthly credit card spend ($000) | Continuous |
+| `Mortgage` | Home mortgage value ($000) | Continuous |
+| `Age` | Customer age | Continuous |
+| `Experience` | Professional experience (years) | Continuous |
+| `Family` | Family size (1-4) | Discrete |
+| `Education` | 1 = Undergrad, 2 = Graduate, 3 = Professional | Categorical |
+| `CDAccount` | Certificate of deposit account with this bank | Binary |
+| `Securities` | Securities account with this bank | Binary |
+| `Online` | Uses internet banking | Binary |
+| `CreditCard` | Uses a credit card from this bank | Binary |
+| `ZipCode` | Home zip code *(removed - no predictive value)* | — |
 
 ## Results at a Glance
 
@@ -35,22 +55,40 @@ Binary classification of personal loan acceptance using the Thera Bank dataset (
 ## Repository Structure
 
 ```
-ASML/
-├── report.R                 # Master script — runs the full pipeline
-├── R/
-│   ├── data_exploration.R   # EDA, cleaning, visualisations
-│   ├── models.R             # 8 model definitions + CV training
-│   └── evaluation.R         # Test evaluation, plots, cost analysis
-├── data/
-│   └── bank_personal_loan.csv
-├── plots/                   # All generated figures (13 plots)
-├── ASML Report/
-│   ├── main.tex             # LaTeX master document
-│   ├── ExecutiveSummary.tex  # Part 1: non-technical summary
-│   └── TechnicalSummary.tex # Part 2: full technical write-up
-├── build.py                 # Local PDF compilation script
-└── .github/workflows/
-    └── build-report.yml     # CI: auto-compile PDF on push
+.
+├── 📊 report.R                      # Master script - runs the full pipeline
+│
+├── 📁 R/
+│   ├── data_exploration.R           # EDA, cleaning, visualisations
+│   ├── models.R                     # 8 model definitions + CV training
+│   └── evaluation.R                 # Test evaluation, plots, cost analysis
+│
+├── 📁 data/
+│   └── bank_personal_loan.csv       # Thera Bank dataset (5,000 rows)
+│
+├── 📁 plots/                        # All generated figures (13 plots)
+│   ├── roc_curves.png
+│   ├── pr_curves.png
+│   ├── cv_comparison.png
+│   ├── cost_analysis.png
+│   ├── calibration.png
+│   ├── decision_tree.png
+│   ├── feature_importance.png
+│   ├── threshold_analysis.png
+│   ├── learning_curve.png
+│   ├── income_distribution.png
+│   ├── class_balance.png
+│   ├── education_vs_acceptance.png
+│   └── pca_biplot.png
+│
+├── 📁 ASML Report/
+│   ├── main.tex                     # LaTeX master document (IEEEtran)
+│   ├── ExecutiveSummary.tex         # Part 1: non-technical summary
+│   └── TechnicalSummary.tex         # Part 2: full technical write-up
+│
+├── 🔧 build.py                     # Local PDF compilation script
+└── 📁 .github/workflows/
+    └── build-report.yml             # CI: auto-compile PDF on push
 ```
 
 ## Quick Start
@@ -82,8 +120,8 @@ python build.py --open
 | # | Model | Method | Key Hyperparameters |
 |---|-------|--------|-------------------|
 | 1 | Decision Tree | `rpart` | `cp` ∈ [0.001, 0.05] |
-| 2 | Logistic Regression | `glm` | — |
-| 3 | LDA | `lda` | — |
+| 2 | Logistic Regression | `glm` | - |
+| 3 | LDA | `lda` | - |
 | 4 | Elastic Net | `glmnet` | α ∈ {0, 0.5, 1}, λ ∈ [10⁻⁴, 10⁻¹] |
 | 5 | Random Forest | `rf` | `mtry` ∈ {2,3,4,5,6,8}, 500 trees |
 | 6 | SVM (RBF) | `svmRadial` | σ ∈ {0.01, 0.05, 0.1}, C ∈ {0.1, 1, 10} |
@@ -145,5 +183,5 @@ tidyverse, caret, pROC, glmnet, randomForest, e1071, gbm, MASS, rpart.plot, nnet
 ---
 
 <p align="center">
-  <sub>Durham University — MISCADA Applied Statistical Modelling and Machine Learning — 2025/26</sub>
+  <sub>Durham University - MISCADA Applied Statistical Modelling and Machine Learning - 2025/26</sub>
 </p>
