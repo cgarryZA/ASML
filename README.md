@@ -46,7 +46,7 @@ ASML/
 ├── plots/                   # All generated figures (13 plots)
 ├── ASML Report/
 │   ├── main.tex             # LaTeX master document
-│   ├── ExecutiveSummary.tex  # Part 1: non-technical summary
+│   ├── ExecutiveSummary.tex # Part 1: non-technical summary
 │   └── TechnicalSummary.tex # Part 2: full technical write-up
 ├── build.py                 # Local PDF compilation script
 └── .github/workflows/
