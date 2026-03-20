@@ -36,21 +36,22 @@ Binary classification of personal loan acceptance using the Thera Bank dataset (
 
 ```
 ASML/
-├── report.R                 # Master script — runs the full pipeline
+├── ASML_Classification_Report.pdf # Full writeup and report
+├── report.R                       # Master script — runs the full pipeline
 ├── R/
-│   ├── data_exploration.R   # EDA, cleaning, visualisations
-│   ├── models.R             # 8 model definitions + CV training
-│   └── evaluation.R         # Test evaluation, plots, cost analysis
+│   ├── data_exploration.R         # EDA, cleaning, visualisations
+│   ├── models.R                   # 8 model definitions + CV training
+│   └── evaluation.R               # Test evaluation, plots, cost analysis
 ├── data/
-│   └── bank_personal_loan.csv
-├── plots/                   # All generated figures (13 plots)
+│   └── bank_personal_loan.csv     # Thera bank data
+├── plots/                         # All generated figures (13 plots)
 ├── ASML Report/
-│   ├── main.tex             # LaTeX master document
-│   ├── ExecutiveSummary.tex # Part 1: non-technical summary
-│   └── TechnicalSummary.tex # Part 2: full technical write-up
-├── build.py                 # Local PDF compilation script
+│   ├── main.tex                   # LaTeX master document
+│   ├── ExecutiveSummary.tex       # Part 1: non-technical summary
+│   └── TechnicalSummary.tex       # Part 2: full technical write-up
+├── build.py                       # Local PDF compilation script
 └── .github/workflows/
-    └── build-report.yml     # CI: auto-compile PDF on push
+    └── build-report.yml           # CI: auto-compile PDF on push
 ```
 
 ## Quick Start
