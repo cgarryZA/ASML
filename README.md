@@ -116,42 +116,96 @@ python build.py --open
 | 7 | GBM | `gbm` | trees ∈ {100,300,500}, depth ∈ {1,3,5} |
 | 8 | Neural Network | `nnet` | size ∈ {5,10,20}, decay ∈ {0.001, 0.01, 0.1} |
 
-## Key Plots
+## Plots
+
+> All 13 generated figures — click any to expand.
+
+### 🔍 Exploratory Data Analysis
 
 <details>
-<summary><b>ROC Curves</b></summary>
+<summary><b>📊 Class Balance</b></summary>
 <br>
-<img src="plots/roc_curves.png" width="600"/>
+<img src="plots/class_balance.png" width="600"/>
 </details>
 
 <details>
-<summary><b>Precision-Recall Curves</b></summary>
+<summary><b>💰 Income Distribution by Loan Status</b></summary>
 <br>
-<img src="plots/pr_curves.png" width="600"/>
+<img src="plots/income_distribution.png" width="600"/>
 </details>
 
 <details>
-<summary><b>Cross-Validation Comparison</b></summary>
+<summary><b>🎓 Education vs Acceptance Rate</b></summary>
+<br>
+<img src="plots/education_vs_acceptance.png" width="600"/>
+</details>
+
+<details>
+<summary><b>🔵 PCA Biplot</b></summary>
+<br>
+<img src="plots/pca_biplot.png" width="600"/>
+</details>
+
+### 🌳 Model Structure
+
+<details>
+<summary><b>🌲 Decision Tree</b></summary>
+<br>
+<img src="plots/decision_tree.png" width="700"/>
+</details>
+
+### 📈 Model Comparison
+
+<details>
+<summary><b>📉 Cross-Validation Comparison</b></summary>
 <br>
 <img src="plots/cv_comparison.png" width="700"/>
 </details>
 
 <details>
-<summary><b>Cost Analysis</b></summary>
+<summary><b>🎯 ROC Curves</b></summary>
 <br>
-<img src="plots/cost_analysis.png" width="600"/>
+<img src="plots/roc_curves.png" width="600"/>
 </details>
 
 <details>
-<summary><b>Feature Importance</b></summary>
+<summary><b>📐 Precision-Recall Curves</b></summary>
+<br>
+<img src="plots/pr_curves.png" width="600"/>
+</details>
+
+<details>
+<summary><b>📊 Feature Importance (Random Forest)</b></summary>
 <br>
 <img src="plots/feature_importance.png" width="600"/>
 </details>
 
 <details>
-<summary><b>Calibration</b></summary>
+<summary><b>🧪 Calibration (Random Forest)</b></summary>
 <br>
 <img src="plots/calibration.png" width="600"/>
+</details>
+
+### 🎛️ Threshold & Cost Analysis
+
+<details>
+<summary><b>💷 Cost Analysis by Threshold</b></summary>
+<br>
+<img src="plots/cost_analysis.png" width="600"/>
+</details>
+
+<details>
+<summary><b>⚖️ Threshold Tuning: Sensitivity / Specificity</b></summary>
+<br>
+<img src="plots/threshold_analysis.png" width="600"/>
+</details>
+
+### 📚 Learning Dynamics
+
+<details>
+<summary><b>📈 Learning Curve (Random Forest)</b></summary>
+<br>
+<img src="plots/learning_curve.png" width="600"/>
 </details>
 
 ## Dependencies
