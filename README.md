@@ -55,40 +55,23 @@ The dataset contains 5,000 customer records from a Thera Bank marketing campaign
 ## Repository Structure
 
 ```
-.
-├── 📊 report.R                      # Master script - runs the full pipeline
-│
-├── 📁 R/
-│   ├── data_exploration.R           # EDA, cleaning, visualisations
-│   ├── models.R                     # 8 model definitions + CV training
-│   └── evaluation.R                 # Test evaluation, plots, cost analysis
-│
-├── 📁 data/
-│   └── bank_personal_loan.csv       # Thera Bank dataset (5,000 rows)
-│
-├── 📁 plots/                        # All generated figures (13 plots)
-│   ├── roc_curves.png
-│   ├── pr_curves.png
-│   ├── cv_comparison.png
-│   ├── cost_analysis.png
-│   ├── calibration.png
-│   ├── decision_tree.png
-│   ├── feature_importance.png
-│   ├── threshold_analysis.png
-│   ├── learning_curve.png
-│   ├── income_distribution.png
-│   ├── class_balance.png
-│   ├── education_vs_acceptance.png
-│   └── pca_biplot.png
-│
-├── 📁 ASML Report/
-│   ├── main.tex                     # LaTeX master document (IEEEtran)
-│   ├── ExecutiveSummary.tex         # Part 1: non-technical summary
-│   └── TechnicalSummary.tex         # Part 2: full technical write-up
-│
-├── 🔧 build.py                     # Local PDF compilation script
-└── 📁 .github/workflows/
-    └── build-report.yml             # CI: auto-compile PDF on push
+ASML/
+├── ASML_Classification_Report.pdf # Full writeup and report
+├── report.R                       # Master script — runs the full pipeline
+├── R/
+│   ├── data_exploration.R         # EDA, cleaning, visualisations
+│   ├── models.R                   # 8 model definitions + CV training
+│   └── evaluation.R               # Test evaluation, plots, cost analysis
+├── data/
+│   └── bank_personal_loan.csv     # Thera bank data
+├── plots/                         # All generated figures (13 plots)
+├── ASML Report/
+│   ├── main.tex                   # LaTeX master document
+│   ├── ExecutiveSummary.tex       # Part 1: non-technical summary
+│   └── TechnicalSummary.tex       # Part 2: full technical write-up
+├── build.py                       # Local PDF compilation script
+└── .github/workflows/
+    └── build-report.yml           # CI: auto-compile PDF on push
 ```
 
 ## Quick Start
