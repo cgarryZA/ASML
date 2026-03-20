@@ -225,5 +225,5 @@ tidyverse, caret, pROC, glmnet, randomForest, e1071, gbm, MASS, rpart.plot, nnet
 ---
 
 <p align="center">
-  <sub>Durham University - MISCADA Applied Statistical Modelling and Machine Learning - 2025/26</sub>
+  <sub>Durham University - MISCADA Advanced Statistics and Machine Learning: Regression and Classification - 2025/26</sub>
 </p>
